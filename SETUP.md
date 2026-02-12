@@ -1,12 +1,12 @@
 # OpenCode ↔ OpenClaw Bridge
 
-Remote OpenCode (dgx-99) delegates local-only tasks to OpenClaw Gateway running on MacBook via Tailscale mesh VPN.
+Remote OpenCode (Resourceful Remote machine) delegates local-only tasks to OpenClaw Gateway running on MacBook via Tailscale mesh VPN.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────┐         Tailscale          ┌──────────────────────────────────┐
-│  dgx-99 (Remote)            │      100.x ↔ 100.x         │  MacBook (Local)                 │
+│  Remote Machine (Resourceful)  │      100.x ↔ 100.x         │  MacBook (Local)                 │
 │                             │                            │                                  │
 │  OpenCode                   │                            │  ┌─────────────────────┐         │
 │    └─ MCP Client ───────────┼── SSE http :3100/sse ──────┼──┤ openclaw-mcp-bridge │         │
@@ -30,7 +30,7 @@ Remote OpenCode (dgx-99) delegates local-only tasks to OpenClaw Gateway running 
 
 | Host | Tailscale IP | Role |
 |------|-------------|------|
-| dgx-99 | 100.107.38.98 | Remote dev machine (OpenCode) |
+| Remote Machine | 100.107.38.98 | Remote dev machine (OpenCode) |
 | lucass-macbook-pro | 100.106.94.64 | Local machine (OpenClaw Gateway + Node) |
 
 ## Components
@@ -163,8 +163,8 @@ curl http://<macbook-tailscale-ip>:3100/health
 | File | Host | Path |
 |------|------|------|
 | Bridge source | MacBook | `~/openclaw-mcp-bridge/src/` |
-| Bridge source (dev) | dgx-99 | `/raid/workspaces/lucasjo/new/general_research/openclaw-mcp-bridge/` |
-| OpenCode config | dgx-99 | `~/.config/opencode/opencode.json` |
+| Bridge source (dev) | Remote Server | `/raid/workspaces/lucasjo/new/general_research/openclaw-mcp-bridge/` |
+| OpenCode config | Remote Server | `~/.config/opencode/opencode.json` |
 | OpenClaw config | MacBook | `~/.openclaw/openclaw.json` |
 | Gateway token | MacBook | `openclaw config get gateway.auth.token` |
 | Exec approvals | MacBook | `~/.openclaw/exec-approvals.json` |

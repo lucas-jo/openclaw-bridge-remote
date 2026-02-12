@@ -9,7 +9,7 @@ This bridge allows remote AI agents (like OpenCode, Cursor, or Windsurf running 
 
 ## 🚀 Why this exists?
 
-When working on powerful remote servers (DGX, AWS EC2, etc.), AI agents are "blind" to your local environment. This bridge provides the "eyes and hands" by connecting the remote agent to your local OpenClaw instance.
+When working on powerful remote servers (GPU clusters, resourceful cloud instances, etc.), AI agents are "blind" to your local environment. This bridge provides the "eyes and hands" by connecting the remote agent to your local OpenClaw instance.
 
 - **Local Browser Control**: Navigate, screenshot, click, and scrape pages on your local machine.
 - **Local Shell Access**: Execute commands on your local OS (say, open, pbcopy, hardware control).
@@ -55,7 +55,7 @@ The installer creates a `.env` file in the project directory. You can manually a
 ## 🏃 Running the Bridge
 
 ### Option 1: SSE Mode (Server)
-Ideal for remote agents connecting via network (e.g., dgx-99 to MacBook).
+Ideal for remote agents connecting via network (e.g., remote resourceful server to MacBook).
 ```bash
 bun run start --transport=sse
 ```
