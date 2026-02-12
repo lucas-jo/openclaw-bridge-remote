@@ -36,241 +36,236 @@ function createBridgeServer(): McpServer {
 }
 
 function registerTools(server: McpServer): void {
+  server.tool(
+    "openclaw_gateway_call",
+    "Call OpenClaw Gateway RPC",
+    {
+      method: z.string().describe("Method (health, config.get, etc)"),
+      params: z.record(z.string(), z.unknown()).optional().describe("Params"),
+    },
+    async ({ method, params }) => {
+      const result = await gateway.call(method, params);
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
 
-server.tool(
-  "openclaw_gateway_call",
-  "Call OpenClaw Gateway RPC",
-  {
-    method: z.string().describe("Method (health, config.get, etc)"),
-    params: z.record(z.string(), z.unknown()).optional().describe("Params"),
-  },
-  async ({ method, params }) => {
-    const result = await gateway.call(method, params);
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_nodes_list",
-  "List OpenClaw nodes",
-  {},
-  async () => {
+  server.tool("openclaw_nodes_list", "List OpenClaw nodes", {}, async () => {
     const result = await gateway.call("node.list");
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
+  });
 
-server.tool(
-  "openclaw_nodes_invoke",
-  "Invoke node command",
-  {
-    nodeId: z.string().describe("Node ID or name"),
-    command: z.string().describe("Command (canvas.navigate, etc)"),
-    params: z.record(z.string(), z.unknown()).optional().describe("Params"),
-  },
-  async ({ nodeId, command, params }) => {
-    const result = await gateway.call("node.invoke", {
-      nodeId,
-      command,
-      params: params ?? {},
-      idempotencyKey: crypto.randomUUID(),
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
+  server.tool(
+    "openclaw_nodes_invoke",
+    "Invoke node command",
+    {
+      nodeId: z.string().describe("Node ID or name"),
+      command: z.string().describe("Command (canvas.navigate, etc)"),
+      params: z.record(z.string(), z.unknown()).optional().describe("Params"),
+    },
+    async ({ nodeId, command, params }) => {
+      const result = await gateway.call("node.invoke", {
+        nodeId,
+        command,
+        params: params ?? {},
+        idempotencyKey: crypto.randomUUID(),
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
 
-server.tool(
-  "openclaw_browser_navigate",
-  "Navigate local browser",
-  {
-    url: z.string().describe("URL"),
-    targetId: z.string().optional().describe("Tab ID"),
-    profile: z.string().optional().describe("Profile (chrome/openclaw)"),
-  },
-  async ({ url, targetId, profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "POST",
-      path: "/navigate",
-      body: { url, targetId },
-      query: profile ? { profile } : undefined,
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
+  server.tool(
+    "openclaw_browser_navigate",
+    "Navigate local browser",
+    {
+      url: z.string().describe("URL"),
+      targetId: z.string().optional().describe("Tab ID"),
+      profile: z.string().optional().describe("Profile (chrome/openclaw)"),
+    },
+    async ({ url, targetId, profile }) => {
+      const result = await gateway.call("browser.request", {
+        method: "POST",
+        path: "/navigate",
+        body: { url, targetId },
+        query: profile ? { profile } : undefined,
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
 
-server.tool(
-  "openclaw_browser_screenshot",
-  "Take browser screenshot",
-  {
-    targetId: z.string().optional().describe("Tab ID"),
-    fullPage: z.boolean().optional().describe("Full page"),
-    type: z.enum(["png", "jpeg"]).optional().describe("Format"),
-    profile: z.string().optional().describe("Profile"),
-  },
-  async ({ targetId, fullPage, type, profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "POST",
-      path: "/screenshot",
-      body: { targetId, fullPage, type },
-      query: profile ? { profile } : undefined,
-    }) as any;
+  server.tool(
+    "openclaw_browser_screenshot",
+    "Take browser screenshot",
+    {
+      targetId: z.string().optional().describe("Tab ID"),
+      fullPage: z.boolean().optional().describe("Full page"),
+      type: z.enum(["png", "jpeg"]).optional().describe("Format"),
+      profile: z.string().optional().describe("Profile"),
+    },
+    async ({ targetId, fullPage, type, profile }) => {
+      const result = (await gateway.call("browser.request", {
+        method: "POST",
+        path: "/screenshot",
+        body: { targetId, fullPage, type },
+        query: profile ? { profile } : undefined,
+      })) as { data?: string };
 
-    if (result && typeof result.data === "string") {
-      return {
-        content: [{
-          type: "image" as const,
-          data: result.data,
-          mimeType: type === "jpeg" ? "image/jpeg" : "image/png",
-        }],
+      if (result && typeof result.data === "string") {
+        return {
+          content: [
+            {
+              type: "image" as const,
+              data: result.data,
+              mimeType: type === "jpeg" ? "image/jpeg" : "image/png",
+            },
+          ],
+        };
+      }
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_browser_snapshot",
+    "Get browser accessibility tree",
+    {
+      format: z.enum(["aria", "ai"]).optional().describe("Format (aria/ai)"),
+      targetId: z.string().optional().describe("Tab ID"),
+      profile: z.string().optional().describe("Profile"),
+    },
+    async ({ format, targetId, profile }) => {
+      const result = await gateway.call("browser.request", {
+        method: "GET",
+        path: "/snapshot",
+        query: {
+          format: format ?? "ai",
+          targetId,
+          profile,
+        },
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_browser_click",
+    "Click element",
+    {
+      ref: z.string().describe("Element ref"),
+      targetId: z.string().optional().describe("Tab ID"),
+      profile: z.string().optional().describe("Profile"),
+    },
+    async ({ ref, targetId, profile }) => {
+      const result = await gateway.call("browser.request", {
+        method: "POST",
+        path: "/act",
+        body: { kind: "click", ref, targetId },
+        query: profile ? { profile } : undefined,
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_browser_type",
+    "Type text into element",
+    {
+      ref: z.string().describe("Element ref"),
+      text: z.string().describe("Text"),
+      submit: z.boolean().optional().describe("Press Enter"),
+      targetId: z.string().optional().describe("Tab ID"),
+      profile: z.string().optional().describe("Profile"),
+    },
+    async ({ ref, text, submit, targetId, profile }) => {
+      const result = await gateway.call("browser.request", {
+        method: "POST",
+        path: "/act",
+        body: { kind: "type", ref, text, submit, targetId },
+        query: profile ? { profile } : undefined,
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_browser_evaluate",
+    "Run JS in browser",
+    {
+      fn: z.string().describe("JS code"),
+      targetId: z.string().optional().describe("Tab ID"),
+      profile: z.string().optional().describe("Profile"),
+    },
+    async ({ fn, targetId, profile }) => {
+      const result = await gateway.call("browser.request", {
+        method: "POST",
+        path: "/act",
+        body: { kind: "evaluate", fn, targetId },
+        query: profile ? { profile } : undefined,
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_browser_tabs",
+    "List browser tabs",
+    {
+      profile: z.string().optional().describe("Profile"),
+    },
+    async ({ profile }) => {
+      const result = await gateway.call("browser.request", {
+        method: "GET",
+        path: "/tabs",
+        query: profile ? { profile } : undefined,
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_browser_open",
+    "Open URL in new tab",
+    {
+      url: z.string().describe("URL"),
+      profile: z.string().optional().describe("Profile"),
+    },
+    async ({ url, profile }) => {
+      const result = await gateway.call("browser.request", {
+        method: "POST",
+        path: "/tabs/open",
+        body: { url },
+        query: profile ? { profile } : undefined,
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_system_run",
+    "Run shell command",
+    {
+      nodeId: z.string().describe("Node ID"),
+      command: z.string().describe("Command"),
+      cwd: z.string().optional().describe("Working dir"),
+      env: z.record(z.string(), z.string()).optional().describe("Env vars"),
+      timeoutMs: z.number().optional().describe("Timeout (ms)"),
+    },
+    async ({ nodeId, command, cwd, env, timeoutMs }) => {
+      const params: Record<string, unknown> = {
+        command: ["bash", "-c", command],
+        rawCommand: command,
       };
-    }
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_browser_snapshot",
-  "Get browser accessibility tree",
-  {
-    format: z.enum(["aria", "ai"]).optional().describe("Format (aria/ai)"),
-    targetId: z.string().optional().describe("Tab ID"),
-    profile: z.string().optional().describe("Profile"),
-  },
-  async ({ format, targetId, profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "GET",
-      path: "/snapshot",
-      query: {
-        format: format ?? "ai",
-        targetId,
-        profile,
-      },
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_browser_click",
-  "Click element",
-  {
-    ref: z.string().describe("Element ref"),
-    targetId: z.string().optional().describe("Tab ID"),
-    profile: z.string().optional().describe("Profile"),
-  },
-  async ({ ref, targetId, profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "POST",
-      path: "/act",
-      body: { kind: "click", ref, targetId },
-      query: profile ? { profile } : undefined,
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_browser_type",
-  "Type text into element",
-  {
-    ref: z.string().describe("Element ref"),
-    text: z.string().describe("Text"),
-    submit: z.boolean().optional().describe("Press Enter"),
-    targetId: z.string().optional().describe("Tab ID"),
-    profile: z.string().optional().describe("Profile"),
-  },
-  async ({ ref, text, submit, targetId, profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "POST",
-      path: "/act",
-      body: { kind: "type", ref, text, submit, targetId },
-      query: profile ? { profile } : undefined,
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_browser_evaluate",
-  "Run JS in browser",
-  {
-    fn: z.string().describe("JS code"),
-    targetId: z.string().optional().describe("Tab ID"),
-    profile: z.string().optional().describe("Profile"),
-  },
-  async ({ fn, targetId, profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "POST",
-      path: "/act",
-      body: { kind: "evaluate", fn, targetId },
-      query: profile ? { profile } : undefined,
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_browser_tabs",
-  "List browser tabs",
-  {
-    profile: z.string().optional().describe("Profile"),
-  },
-  async ({ profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "GET",
-      path: "/tabs",
-      query: profile ? { profile } : undefined,
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_browser_open",
-  "Open URL in new tab",
-  {
-    url: z.string().describe("URL"),
-    profile: z.string().optional().describe("Profile"),
-  },
-  async ({ url, profile }) => {
-    const result = await gateway.call("browser.request", {
-      method: "POST",
-      path: "/tabs/open",
-      body: { url },
-      query: profile ? { profile } : undefined,
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
-server.tool(
-  "openclaw_system_run",
-  "Run shell command",
-  {
-    nodeId: z.string().describe("Node ID"),
-    command: z.string().describe("Command"),
-    cwd: z.string().optional().describe("Working dir"),
-    env: z.record(z.string(), z.string()).optional().describe("Env vars"),
-    timeoutMs: z.number().optional().describe("Timeout (ms)"),
-  },
-  async ({ nodeId, command, cwd, env, timeoutMs }) => {
-    const params: Record<string, unknown> = {
-      command: ["bash", "-c", command],
-      rawCommand: command,
-    };
-    if (cwd) params.cwd = cwd;
-    if (env) params.env = env;
-    if (timeoutMs) params.commandTimeout = timeoutMs;
-    const result = await gateway.call("node.invoke", {
-      nodeId,
-      command: "system.run",
-      params,
-      idempotencyKey: crypto.randomUUID(),
-    });
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  }
-);
-
+      if (cwd) params.cwd = cwd;
+      if (env) params.env = env;
+      if (timeoutMs) params.commandTimeout = timeoutMs;
+      const result = await gateway.call("node.invoke", {
+        nodeId,
+        command: "system.run",
+        params,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
 }
 
 const sessions = new Map<string, { transport: SSEServerTransport; server: McpServer }>();
@@ -290,11 +285,13 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      status: "ok",
-      gateway: gateway.isConnected(),
-      version: "0.1.0",
-    }));
+    res.end(
+      JSON.stringify({
+        status: "ok",
+        gateway: gateway.isConnected(),
+        version: "0.1.0",
+      }),
+    );
     return;
   }
 
@@ -343,7 +340,7 @@ async function runSseServer() {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const transportArg = args.find(arg => arg.startsWith("--transport="))?.split("=")[1] ?? "sse";
+  const transportArg = args.find((arg) => arg.startsWith("--transport="))?.split("=")[1] ?? "sse";
 
   await gateway.connect();
   console.error(`[bridge] Gateway connected: ${GATEWAY_HOST}:${GATEWAY_PORT}`);

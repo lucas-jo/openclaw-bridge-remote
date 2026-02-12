@@ -3,7 +3,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Runtime-Bun-black?logo=bun)](https://bun.sh)
 
-A high-performance bridge that exposes [OpenClaw](https://openclaw.ai) capabilities as a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server. 
+A high-performance bridge that exposes [OpenClaw](https://openclaw.ai) capabilities as a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server.
 
 This bridge allows remote AI agents (like OpenCode, Cursor, or Windsurf running on remote servers) to securely delegate local tasks—such as browser automation and shell execution—to an OpenClaw Gateway running on your local machine (e.g., MacBook) via Tailscale or any network connection.
 
@@ -23,7 +23,7 @@ graph LR
     subgraph Remote_Server
         A[AI Agent / OpenCode] -- "SSE (MCP)" --> B[openclaw-mcp-bridge]
     end
-    
+
     subgraph Local_Machine
         B -- "Tailscale/Network" --> C[OpenClaw Gateway]
         C -- "WebSocket" --> D[Local Browser]
@@ -44,24 +44,28 @@ curl -fsSL https://raw.githubusercontent.com/lucas-jo/openclaw-mcp-bridge/main/i
 
 The installer creates a `.env` file in the project directory. You can manually adjust these values:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENCLAW_GATEWAY_TOKEN` | Your OpenClaw Gateway auth token | **Required** |
-| `BRIDGE_API_KEY` | Secret key for the bridge itself | (Auto-generated) |
-| `OPENCLAW_GATEWAY_HOST` | Local OpenClaw Gateway host | `127.0.0.1` |
-| `OPENCLAW_GATEWAY_PORT` | Local OpenClaw Gateway port | `18790` |
-| `BRIDGE_PORT` | Port for the MCP SSE server | `3100` |
+| Variable                 | Description                      | Default          |
+| ------------------------ | -------------------------------- | ---------------- |
+| `OPENCLAW_GATEWAY_TOKEN` | Your OpenClaw Gateway auth token | **Required**     |
+| `BRIDGE_API_KEY`         | Secret key for the bridge itself | (Auto-generated) |
+| `OPENCLAW_GATEWAY_HOST`  | Local OpenClaw Gateway host      | `127.0.0.1`      |
+| `OPENCLAW_GATEWAY_PORT`  | Local OpenClaw Gateway port      | `18790`          |
+| `BRIDGE_PORT`            | Port for the MCP SSE server      | `3100`           |
 
 ## 🏃 Running the Bridge
 
 ### Option 1: SSE Mode (Server)
+
 Ideal for remote agents connecting via network (e.g., remote resourceful server to MacBook).
+
 ```bash
 bun run start --transport=sse
 ```
 
 ### Option 2: Stdio Mode (CLI) - Recommended for Local
+
 Ideal for local agents like Cursor or Windsurf. Lower latency and token-efficient.
+
 ```bash
 bun run start --transport=stdio
 ```
@@ -69,7 +73,9 @@ bun run start --transport=stdio
 ## 🤖 Adding to your Agent
 
 ### Remote Agent (SSE)
+
 Add to your `mcpServers` config:
+
 ```json
 {
   "openclaw-bridge": {
@@ -78,18 +84,19 @@ Add to your `mcpServers` config:
   }
 }
 ```
-*(Tip: Use `tailscale ip -4` to get your secure IP)*
+
+_(Tip: Use `tailscale ip -4` to get your secure IP)_
 
 ## 🛠 Available MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `openclaw_browser_navigate` | Navigate local browser to a URL |
-| `openclaw_browser_snapshot` | Get accessibility tree for AI reasoning |
-| `openclaw_browser_screenshot` | Capture local browser screen |
-| `openclaw_system_run` | Execute shell commands on the local machine |
-| `openclaw_nodes_list` | List connected OpenClaw nodes |
-| `openclaw_gateway_call` | Direct RPC access to OpenClaw Gateway |
+| Tool                          | Description                                 |
+| ----------------------------- | ------------------------------------------- |
+| `openclaw_browser_navigate`   | Navigate local browser to a URL             |
+| `openclaw_browser_snapshot`   | Get accessibility tree for AI reasoning     |
+| `openclaw_browser_screenshot` | Capture local browser screen                |
+| `openclaw_system_run`         | Execute shell commands on the local machine |
+| `openclaw_nodes_list`         | List connected OpenClaw nodes               |
+| `openclaw_gateway_call`       | Direct RPC access to OpenClaw Gateway       |
 
 ## 📖 Documentation
 

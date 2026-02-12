@@ -70,16 +70,25 @@ export class GatewayClient {
         if (!msg) return;
 
         if (msg.type === "event" && msg.event === "connect.challenge") {
-          const challenge = (msg as Record<string, unknown>).payload as { nonce: string; ts: number };
+          const challenge = (msg as Record<string, unknown>).payload as {
+            nonce: string;
+            ts: number;
+          };
           this.handleChallenge(challenge)
             .then(() => {
               this.authenticated = true;
               console.error("[gateway] Authenticated as operator");
-              if (!resolved) { resolved = true; resolve(); }
+              if (!resolved) {
+                resolved = true;
+                resolve();
+              }
             })
             .catch((err: Error) => {
               console.error(`[gateway] Auth failed: ${err.message}`);
-              if (!resolved) { resolved = true; reject(err); }
+              if (!resolved) {
+                resolved = true;
+                reject(err);
+              }
             });
           return;
         }
@@ -105,12 +114,18 @@ export class GatewayClient {
         this.authenticated = false;
         this.rejectAllPending(new Error("WebSocket disconnected"));
         if (resolved) this.scheduleReconnect();
-        else { resolved = true; reject(new Error(`WS closed: ${code}`)); }
+        else {
+          resolved = true;
+          reject(new Error(`WS closed: ${code}`));
+        }
       });
 
       this.ws.on("error", (err) => {
         console.error(`[gateway] Error: ${err.message}`);
-        if (!resolved) { resolved = true; reject(err); }
+        if (!resolved) {
+          resolved = true;
+          reject(err);
+        }
       });
     });
   }
