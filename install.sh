@@ -24,6 +24,7 @@ fi
 REPO_DIR="$HOME/openclaw-mcp-bridge"
 if [ -d "$REPO_DIR" ]; then
     echo -e "${BLUE}Found existing bridge at $REPO_DIR. Updating...${NC}"
+    echo -e "${BLUE}(Tip: If update fails, run 'rm -rf $REPO_DIR' and reinstall)${NC}"
     cd "$REPO_DIR"
     git pull origin main
 else
@@ -60,6 +61,12 @@ echo ""
 # 5. Optional Start
 # Use /dev/tty to read input even when piped from curl
 if [ -c /dev/tty ]; then
+    if ! command -v tmux &> /dev/null; then
+        echo -e "${RED}Warning: tmux is not installed.${NC}"
+        echo -e "Background execution requires tmux. Install it via 'brew install tmux' for the best experience."
+        echo ""
+    fi
+
     echo -e "Would you like to start the bridge now in a background tmux session? (y/N)"
     read -r START_NOW < /dev/tty
     if [[ $START_NOW =~ ^[Yy]$ ]]; then
