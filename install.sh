@@ -21,15 +21,15 @@ if ! command -v bun &> /dev/null; then
 fi
 
 # 2. Clone or Update
-REPO_DIR="$HOME/openclaw-mcp-bridge"
+REPO_DIR="$HOME/openclaw-bridge-remote"
 if [ -d "$REPO_DIR" ]; then
     echo -e "${BLUE}Found existing bridge at $REPO_DIR. Updating...${NC}"
     echo -e "${BLUE}(Tip: If update fails, run 'rm -rf $REPO_DIR' and reinstall)${NC}"
     cd "$REPO_DIR"
     git pull origin main
 else
-    echo -e "${BLUE}Cloning openclaw-mcp-bridge to $REPO_DIR...${NC}"
-    git clone https://github.com/lucas-jo/openclaw-mcp-bridge.git "$REPO_DIR"
+    echo -e "${BLUE}Cloning openclaw-bridge-remote to $REPO_DIR...${NC}"
+    git clone https://github.com/lucas-jo/openclaw-bridge-remote.git "$REPO_DIR"
     cd "$REPO_DIR"
 fi
 
@@ -88,6 +88,6 @@ echo -e "To use it in your remote agent (e.g. Cursor/OpenCode), use this URL:"
 echo -e "  ${BLUE}http://$(tailscale ip -4 2>/dev/null || echo "<your-ip>"):3100/sse?apiKey=$(grep BRIDGE_API_KEY .env | cut -d'=' -f2)${NC}"
 echo ""
 echo -e "For advanced connectivity options (SSH tunneling, recipes), see:"
-echo -e "  ${BLUE}https://github.com/lucas-jo/openclaw-mcp-bridge/blob/main/RECIPES.md${NC}"
+echo -e "  ${BLUE}https://github.com/lucas-jo/openclaw-bridge-remote/blob/main/RECIPES.md${NC}"
 echo ""
 echo -e "Happy hybrid coding! 🦞🚀"

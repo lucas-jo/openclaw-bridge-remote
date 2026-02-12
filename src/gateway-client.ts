@@ -191,7 +191,7 @@ export class GatewayClient {
           permissions: {},
           auth: { token: this.options.token },
           locale: "en-US",
-          userAgent: "openclaw-mcp-bridge/0.1.0",
+          userAgent: "openclaw-bridge-remote/0.1.0",
           device: {
             id: this.deviceId,
             publicKey: this.publicKeyBase64Url,

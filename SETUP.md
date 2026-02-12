@@ -9,7 +9,7 @@ Remote OpenCode (Resourceful Remote machine) delegates local-only tasks to OpenC
 │  Remote Machine (Resourceful)  │      100.x ↔ 100.x         │  MacBook (Local)                 │
 │                             │                            │                                  │
 │  OpenCode                   │                            │  ┌─────────────────────┐         │
-│    └─ MCP Client ───────────┼── SSE http :3100/sse ──────┼──┤ openclaw-mcp-bridge │         │
+│    └─ MCP Client ───────────┼── SSE http :3100/sse ──────┼──┤ openclaw-bridge-remote │         │
 │       (openclaw-bridge)     │                            │  │ (MCP Server)        │         │
 │                             │                            │  └────────┬────────────┘         │
 │                             │                            │           │ ws://127.0.0.1:18790 │
@@ -39,12 +39,12 @@ Remote OpenCode (Resourceful Remote machine) delegates local-only tasks to OpenC
 
 Already running on MacBook as a system service. Provides the control plane for all OpenClaw operations.
 
-### 2. openclaw-mcp-bridge (port 3100, 0.0.0.0)
+### 2. openclaw-bridge-remote (port 3100, 0.0.0.0)
 
 Custom MCP server that translates MCP tool calls into OpenClaw Gateway WebSocket RPC.
 
-- **Location**: `~/openclaw-mcp-bridge/` on MacBook
-- **Runs in**: tmux session `openclaw-mcp-bridge`
+- **Location**: `~/openclaw-bridge-remote/` on MacBook
+- **Runs in**: tmux session `openclaw-bridge-remote`
 - **Connects to**: Gateway at `ws://127.0.0.1:18790`
 - **Exposes**: SSE MCP endpoint at `http://0.0.0.0:3100/sse`
 - **Auth**: Ed25519 device identity + challenge-response signing
@@ -90,17 +90,17 @@ Headless node that executes commands on behalf of the Gateway.
 ```bash
 # From remote machine
 rsync -avz --exclude node_modules --exclude dist \
-  /path/to/openclaw-mcp-bridge/ \
-  <macbook-tailscale-ip>:~/openclaw-mcp-bridge/
-ssh <macbook-tailscale-ip> "cd ~/openclaw-mcp-bridge && ~/.bun/bin/bun install"
+  /path/to/openclaw-bridge-remote/ \
+  <macbook-tailscale-ip>:~/openclaw-bridge-remote/
+ssh <macbook-tailscale-ip> "cd ~/openclaw-bridge-remote && ~/.bun/bin/bun install"
 ```
 
 ### Step 2: Start bridge (MacBook)
 
 ```bash
-tmux new-session -d -s openclaw-mcp-bridge
-tmux send-keys -t openclaw-mcp-bridge \
-  'OPENCLAW_GATEWAY_TOKEN=<token> bun run ~/openclaw-mcp-bridge/src/index.ts' Enter
+tmux new-session -d -s openclaw-bridge-remote
+tmux send-keys -t openclaw-bridge-remote \
+  'OPENCLAW_GATEWAY_TOKEN=<token> bun run ~/openclaw-bridge-remote/src/index.ts' Enter
 ```
 
 ### Step 3: Start node host (MacBook)
@@ -174,8 +174,8 @@ curl http://<macbook-tailscale-ip>:3100/health
 
 | File                | Host          | Path                                                                 |
 | ------------------- | ------------- | -------------------------------------------------------------------- |
-| Bridge source       | MacBook       | `~/openclaw-mcp-bridge/src/`                                         |
-| Bridge source (dev) | Remote Server | `/raid/workspaces/lucasjo/new/general_research/openclaw-mcp-bridge/` |
+| Bridge source       | MacBook       | `~/openclaw-bridge-remote/src/`                                         |
+| Bridge source (dev) | Remote Server | `/raid/workspaces/lucasjo/new/general_research/openclaw-bridge-remote/` |
 | OpenCode config     | Remote Server | `~/.config/opencode/opencode.json`                                   |
 | OpenClaw config     | MacBook       | `~/.openclaw/openclaw.json`                                          |
 | Gateway token       | MacBook       | `openclaw config get gateway.auth.token`                             |

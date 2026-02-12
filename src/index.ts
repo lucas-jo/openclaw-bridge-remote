@@ -28,8 +28,8 @@ const gateway = new GatewayClient({
 
 function createBridgeServer(): McpServer {
   const srv = new McpServer({
-    name: "openclaw-bridge",
-    version: "0.1.0",
+    name: "openclaw-remote",
+    version: "0.1.3",
   });
   registerTools(srv);
   return srv;

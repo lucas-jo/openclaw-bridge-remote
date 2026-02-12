@@ -21,7 +21,7 @@ When working on powerful remote servers (GPU clusters, resourceful cloud instanc
 ```mermaid
 graph LR
     subgraph Remote_Server
-        A[AI Agent / OpenCode] -- "SSE (MCP)" --> B[openclaw-mcp-bridge]
+        A[AI Agent / OpenCode] -- "SSE (MCP)" --> B[openclaw-bridge-remote]
     end
 
     subgraph Local_Machine
@@ -37,7 +37,7 @@ graph LR
 Run this on your local machine (e.g. MacBook) to install and configure everything automatically:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lucas-jo/openclaw-mcp-bridge/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/lucas-jo/openclaw-bridge-remote/main/install.sh | bash
 ```
 
 ## ⚙️ Configuration
