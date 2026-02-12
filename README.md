@@ -103,6 +103,28 @@ _(Tip: Use `tailscale ip -4` to get your secure IP)_
 - **[RECIPES.md](./RECIPES.md)**: Connectivity options (SSH Tunneling, Cloudflare Tunnel, etc.).
 - **[SETUP.md](./SETUP.md)**: Detailed architecture, protocol details, and manual troubleshooting.
 
+## 🛠 Development & Maintenance
+
+### Code Quality
+```bash
+bun run lint      # Check code style
+bun run format    # Auto-fix code style
+bun run typecheck # Check for type errors
+```
+
+### Releasing New Versions
+This project uses automated GitHub Releases. To release a new version:
+1. Update version in `package.json`.
+2. Push a new tag:
+```bash
+git tag v0.1.1
+git push origin v0.1.1
+```
+The [Release Workflow](./.github/workflows/release.yml) will automatically:
+- Run lint and type checks.
+- Create a new GitHub Release.
+- Generate a summary of changes based on commits and PRs.
+
 ## 📜 License
 
 MIT © [Lucas Jo](https://github.com/lucas-jo)

@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags starting with v (e.g. v0.1.1)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create a release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for better release notes
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build and Verify
+        run: |
+          bun run lint
+          bun run typecheck
+
+      - name: Generate Release Notes
+        id: release_notes
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true # Automatically summarizes PRs/Commits
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
