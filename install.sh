@@ -58,9 +58,10 @@ echo -e "${GREEN}🎉 Installation Complete!${NC}"
 echo ""
 
 # 5. Optional Start
-if [[ -t 0 ]]; then
+# Use /dev/tty to read input even when piped from curl
+if [ -c /dev/tty ]; then
     echo -e "Would you like to start the bridge now in a background tmux session? (y/N)"
-    read -r START_NOW
+    read -r START_NOW < /dev/tty
     if [[ $START_NOW =~ ^[Yy]$ ]]; then
         if command -v tmux &> /dev/null; then
             echo -e "${BLUE}Starting bridge in tmux session 'openclaw-bridge'...${NC}"
