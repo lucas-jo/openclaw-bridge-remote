@@ -5,25 +5,25 @@ Remote OpenCode (Resourceful Remote machine) delegates local-only tasks to OpenC
 ## Architecture
 
 ```
-┌─────────────────────────────┐         Tailscale          ┌──────────────────────────────────┐
+┌────────────────────────────────┐         Tailscale          ┌──────────────────────────────────┐
 │  Remote Machine (Resourceful)  │      100.x ↔ 100.x         │  MacBook (Local)                 │
-│                             │                            │                                  │
-│  OpenCode                   │                            │  ┌─────────────────────┐         │
-│    └─ MCP Client ───────────┼── SSE http :3100/sse ──────┼──┤ openclaw-bridge-remote │         │
-│       (openclaw-bridge)     │                            │  │ (MCP Server)        │         │
-│                             │                            │  └────────┬────────────┘         │
-│                             │                            │           │ ws://127.0.0.1:18790 │
-│                             │                            │  ┌────────▼────────────┐         │
-│                             │                            │  │ OpenClaw Gateway    │         │
-│                             │                            │  │ (port 18790)        │         │
-│                             │                            │  └────────┬────────────┘         │
-│                             │                            │           │ WS (loopback)        │
-│                             │                            │  ┌────────▼────────────┐         │
-│                             │                            │  │ OpenClaw Node Host  │         │
-│                             │                            │  │ (macbook-node)      │         │
-│                             │                            │  │ caps: browser,system│         │
-│                             │                            │  └─────────────────────┘         │
-└─────────────────────────────┘                            └──────────────────────────────────┘
+│                                │                            │                                  │
+│  OpenCode                      │                            │  ┌────────────────────────┐      │
+│    └─ MCP Client ──────────────┼── SSE http :3100/sse ──────┼──┤ openclaw-bridge-remote │      │
+│       (openclaw-bridge)        │                            │  │ (MCP Server)           │      │
+│                                │                            │  └────────┬───────────────┘      │
+│                                │                            │           │ ws://127.0.0.1:18790 │
+│                                │                            │  ┌────────▼───────────────┐      │
+│                                │                            │  │ OpenClaw Gateway       │      │
+│                                │                            │  │ (port 18790)           │      │
+│                                │                            │  └────────┬───────────────┘      │
+│                                │                            │           │ WS (loopback)        │
+│                                │                            │  ┌────────▼───────────────┐      │
+│                                │                            │  │ OpenClaw Node Host     │      │
+│                                │                            │  │ (macbook-node)         │      │
+│                                │                            │  │ caps: browser,system   │      │
+│                                │                            │  └────────────────────────┘      │
+└────────────────────────────────┘                            └──────────────────────────────────┘
 ```
 
 ## Network

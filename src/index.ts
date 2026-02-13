@@ -37,57 +37,53 @@ function createBridgeServer(): McpServer {
 
 function registerTools(server: McpServer): void {
   server.tool(
-    "openclaw_gateway_call",
-    "Call OpenClaw Gateway RPC",
+    "openclaw_browser",
+    "Unified local browser control (navigate, click, type, tabs, etc.)",
     {
-      method: z.string().describe("Method (health, config.get, etc)"),
-      params: z.record(z.string(), z.unknown()).optional().describe("Params"),
-    },
-    async ({ method, params }) => {
-      const result = await gateway.call(method, params);
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool("openclaw_nodes_list", "List OpenClaw nodes", {}, async () => {
-    const result = await gateway.call("node.list");
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  });
-
-  server.tool(
-    "openclaw_nodes_invoke",
-    "Invoke node command",
-    {
-      nodeId: z.string().describe("Node ID or name"),
-      command: z.string().describe("Command (canvas.navigate, etc)"),
-      params: z.record(z.string(), z.unknown()).optional().describe("Params"),
-    },
-    async ({ nodeId, command, params }) => {
-      const result = await gateway.call("node.invoke", {
-        nodeId,
-        command,
-        params: params ?? {},
-        idempotencyKey: crypto.randomUUID(),
-      });
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "openclaw_browser_navigate",
-    "Navigate local browser",
-    {
-      url: z.string().describe("URL"),
+      action: z
+        .enum(["navigate", "click", "type", "tabs", "open", "evaluate"])
+        .describe("Action to perform"),
+      url: z.string().optional().describe("URL for navigate/open"),
+      ref: z.string().optional().describe("Element ref for click/type"),
+      text: z.string().optional().describe("Text for type"),
       targetId: z.string().optional().describe("Tab ID"),
       profile: z.string().optional().describe("Profile (chrome/openclaw)"),
+      fn: z.string().optional().describe("JS code for evaluate"),
     },
-    async ({ url, targetId, profile }) => {
-      const result = await gateway.call("browser.request", {
-        method: "POST",
-        path: "/navigate",
-        body: { url, targetId },
-        query: profile ? { profile } : undefined,
-      });
+    async ({ action, url, ref, text, targetId, profile, fn }) => {
+      let result;
+      switch (action) {
+        case "navigate":
+          result = await gateway.call("browser.request", {
+            method: "POST",
+            path: "/navigate",
+            body: { url, targetId },
+            query: profile ? { profile } : undefined,
+          });
+          break;
+        case "open":
+          result = await gateway.call("browser.request", {
+            method: "POST",
+            path: "/tabs/open",
+            body: { url },
+            query: profile ? { profile } : undefined,
+          });
+          break;
+        case "tabs":
+          result = await gateway.call("browser.request", {
+            method: "GET",
+            path: "/tabs",
+            query: profile ? { profile } : undefined,
+          });
+          break;
+        default: // click, type, evaluate -> /act
+          result = await gateway.call("browser.request", {
+            method: "POST",
+            path: "/act",
+            body: { kind: action === "evaluate" ? "evaluate" : action, ref, text, targetId, fn },
+            query: profile ? { profile } : undefined,
+          });
+      }
       return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -126,143 +122,66 @@ function registerTools(server: McpServer): void {
 
   server.tool(
     "openclaw_browser_snapshot",
-    "Get browser accessibility tree",
+    "Get optimized browser accessibility tree (pruned for AI context)",
     {
       format: z.enum(["aria", "ai"]).optional().describe("Format (aria/ai)"),
       targetId: z.string().optional().describe("Tab ID"),
       profile: z.string().optional().describe("Profile"),
+      prune: z.boolean().optional().default(true).describe("Remove non-interactive noise"),
     },
-    async ({ format, targetId, profile }) => {
-      const result = await gateway.call("browser.request", {
+    async ({ format, targetId, profile, prune }) => {
+      const result = (await gateway.call("browser.request", {
         method: "GET",
         path: "/snapshot",
-        query: {
-          format: format ?? "ai",
-          targetId,
-          profile,
-        },
-      });
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-    },
-  );
+        query: { format: format ?? "ai", targetId, profile },
+      })) as any;
 
-  server.tool(
-    "openclaw_browser_click",
-    "Click element",
-    {
-      ref: z.string().describe("Element ref"),
-      targetId: z.string().optional().describe("Tab ID"),
-      profile: z.string().optional().describe("Profile"),
-    },
-    async ({ ref, targetId, profile }) => {
-      const result = await gateway.call("browser.request", {
-        method: "POST",
-        path: "/act",
-        body: { kind: "click", ref, targetId },
-        query: profile ? { profile } : undefined,
-      });
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-    },
-  );
+      if (prune && result && typeof result.text === "string") {
+        // Smart pruning: remove empty/meaningless lines and excessive whitespace
+        result.text = result.text
+          .split("\n")
+          .filter((line: string) => {
+            const trimmed = line.trim();
+            // Filter out purely decorative or empty elements if needed
+            return trimmed.length > 0 && !trimmed.match(/^<[^>]+><\/[^>]+>$/);
+          })
+          .join("\n")
+          .replace(/\s{2,}/g, " "); // Collapse multiple spaces
+      }
 
-  server.tool(
-    "openclaw_browser_type",
-    "Type text into element",
-    {
-      ref: z.string().describe("Element ref"),
-      text: z.string().describe("Text"),
-      submit: z.boolean().optional().describe("Press Enter"),
-      targetId: z.string().optional().describe("Tab ID"),
-      profile: z.string().optional().describe("Profile"),
-    },
-    async ({ ref, text, submit, targetId, profile }) => {
-      const result = await gateway.call("browser.request", {
-        method: "POST",
-        path: "/act",
-        body: { kind: "type", ref, text, submit, targetId },
-        query: profile ? { profile } : undefined,
-      });
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "openclaw_browser_evaluate",
-    "Run JS in browser",
-    {
-      fn: z.string().describe("JS code"),
-      targetId: z.string().optional().describe("Tab ID"),
-      profile: z.string().optional().describe("Profile"),
-    },
-    async ({ fn, targetId, profile }) => {
-      const result = await gateway.call("browser.request", {
-        method: "POST",
-        path: "/act",
-        body: { kind: "evaluate", fn, targetId },
-        query: profile ? { profile } : undefined,
-      });
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "openclaw_browser_tabs",
-    "List browser tabs",
-    {
-      profile: z.string().optional().describe("Profile"),
-    },
-    async ({ profile }) => {
-      const result = await gateway.call("browser.request", {
-        method: "GET",
-        path: "/tabs",
-        query: profile ? { profile } : undefined,
-      });
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "openclaw_browser_open",
-    "Open URL in new tab",
-    {
-      url: z.string().describe("URL"),
-      profile: z.string().optional().describe("Profile"),
-    },
-    async ({ url, profile }) => {
-      const result = await gateway.call("browser.request", {
-        method: "POST",
-        path: "/tabs/open",
-        body: { url },
-        query: profile ? { profile } : undefined,
-      });
       return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
 
   server.tool(
     "openclaw_system_run",
-    "Run shell command",
+    "Run shell command on local machine",
     {
       nodeId: z.string().describe("Node ID"),
       command: z.string().describe("Command"),
       cwd: z.string().optional().describe("Working dir"),
-      env: z.record(z.string(), z.string()).optional().describe("Env vars"),
       timeoutMs: z.number().optional().describe("Timeout (ms)"),
     },
-    async ({ nodeId, command, cwd, env, timeoutMs }) => {
-      const params: Record<string, unknown> = {
-        command: ["bash", "-c", command],
-        rawCommand: command,
-      };
-      if (cwd) params.cwd = cwd;
-      if (env) params.env = env;
-      if (timeoutMs) params.commandTimeout = timeoutMs;
+    async ({ nodeId, command, cwd, timeoutMs }) => {
       const result = await gateway.call("node.invoke", {
         nodeId,
         command: "system.run",
-        params,
+        params: { command: ["bash", "-c", command], rawCommand: command, cwd, commandTimeout: timeoutMs },
         idempotencyKey: crypto.randomUUID(),
       });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "openclaw_gateway_call",
+    "Direct RPC access to Gateway",
+    {
+      method: z.string().describe("RPC Method"),
+      params: z.record(z.string(), z.unknown()).optional().describe("Params"),
+    },
+    async ({ method, params }) => {
+      const result = await gateway.call(method, params);
       return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     },
   );
