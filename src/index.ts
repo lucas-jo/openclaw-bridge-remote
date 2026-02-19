@@ -58,7 +58,7 @@ function registerTools(server: McpServer): void {
             method: "POST",
             path: "/navigate",
             body: { url, targetId },
-            query: profile ? { profile } : undefined,
+            query: { profile: profile || "chrome" },
           });
           break;
         case "open":
@@ -66,14 +66,14 @@ function registerTools(server: McpServer): void {
             method: "POST",
             path: "/tabs/open",
             body: { url },
-            query: profile ? { profile } : undefined,
+            query: { profile: profile || "chrome" },
           });
           break;
         case "tabs":
           result = await gateway.call("browser.request", {
             method: "GET",
             path: "/tabs",
-            query: profile ? { profile } : undefined,
+            query: { profile: profile || "chrome" },
           });
           break;
         default: // click, type, evaluate -> /act
@@ -81,7 +81,7 @@ function registerTools(server: McpServer): void {
             method: "POST",
             path: "/act",
             body: { kind: action === "evaluate" ? "evaluate" : action, ref, text, targetId, fn },
-            query: profile ? { profile } : undefined,
+            query: { profile: profile || "chrome" },
           });
       }
       return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
@@ -102,7 +102,7 @@ function registerTools(server: McpServer): void {
         method: "POST",
         path: "/screenshot",
         body: { targetId, fullPage, type },
-        query: profile ? { profile } : undefined,
+        query: { profile: profile || "chrome" },
       })) as { data?: string };
 
       if (result && typeof result.data === "string") {

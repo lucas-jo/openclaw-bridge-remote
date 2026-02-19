@@ -50,13 +50,15 @@ Headless node that executes commands on behalf of the Gateway.
 
 ## Available MCP Tools
 
-| Tool                        | Description                                                     | Requires Node |
-| --------------------------- | --------------------------------------------------------------- | :-----------: |
-| `openclaw_browser`          | Unified browser control (navigate, click, type, tabs, open, evaluate) |      Yes      |
-| `openclaw_browser_screenshot` | Capture browser screenshot (PNG/JPEG)                          |      Yes      |
-| `openclaw_browser_snapshot` | Get accessibility tree for AI reasoning (with smart pruning)    |      Yes      |
-| `openclaw_system_run`       | Execute shell commands on the local machine                     |      Yes      |
-| `openclaw_gateway_call`     | Direct RPC access to OpenClaw Gateway (e.g. `node.list`)        |      No       |
+| Tool                          | Description                                                           | Requires Node | Route            |
+| ----------------------------- | --------------------------------------------------------------------- | :-----------: | ---------------- |
+| `openclaw_browser`            | Unified browser control (navigate, click, type, tabs, open, evaluate) |    No\*       | Gateway direct   |
+| `openclaw_browser_screenshot` | Capture browser screenshot (PNG/JPEG)                                 |    No\*       | Gateway direct   |
+| `openclaw_browser_snapshot`   | Get accessibility tree for AI reasoning (with smart pruning)          |    No\*       | Gateway direct   |
+| `openclaw_system_run`         | Execute shell commands on the local machine                           |      Yes      | Gateway -> Node  |
+| `openclaw_gateway_call`       | Direct RPC access to OpenClaw Gateway (e.g. `node.list`)              |      No       | Gateway direct   |
+
+\*Browser tools are handled directly by the Gateway when `gateway.nodes.browser.mode` is set to `"off"` (required — see [Browser Relay Configuration](#required-browser-relay-configuration)). Without this setting, the Gateway attempts to proxy browser requests through the Node Host, causing `EADDRINUSE` port conflicts.
 
 ### `openclaw_browser` actions
 
@@ -196,10 +198,53 @@ curl -H "x-api-key: <your-BRIDGE_API_KEY>" http://<your-local-ip>:3100/health
 - `system.run` expects `command` as argv array + optional `rawCommand` string
 - Exec approval allowlist controls which commands are auto-approved
 
+## Required: Browser Relay Configuration
+
+When both the Gateway and Node Host are running, `browser.request` is automatically proxied to the Node Host process via `browser.proxy`. Since the Node Host is a **separate process**, it attempts to bind its own relay server on the same port (e.g., 18792) that the Gateway already holds — resulting in `EADDRINUSE`.
+
+**You must disable browser-to-node proxying** so the Gateway handles browser requests directly:
+
+Add the following to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "gateway": {
+    "nodes": {
+      "browser": {
+        "mode": "off"
+      }
+    }
+  }
+}
+```
+
+Then restart the Gateway:
+
+```bash
+openclaw gateway stop && openclaw gateway install
+```
+
+### How it works
+
+| Setting                          | `browser.request` routing                                    | Result  |
+| -------------------------------- | ------------------------------------------------------------ | ------- |
+| `mode: "auto"` (default)        | Gateway -> Node Host -> relay bind -> **EADDRINUSE**         | Broken  |
+| `mode: "off"`                    | Gateway handles directly (in-process relay)                  | Works   |
+
+With `mode: "off"`:
+- **Browser tools** (`navigate`, `snapshot`, `screenshot`, etc.) are handled directly by the Gateway process, which already owns the relay port.
+- **System tools** (`system.run`) still route through the Node Host as before.
+- Both work simultaneously through the bridge without port conflicts.
+
+### Why this happens
+
+The Gateway starts a Chrome extension relay server on port 18792 during startup. When a `browser.request` arrives and a Node Host is connected, the Gateway proxies the request to the Node Host. The Node Host — running as a separate process — tries to start its own relay on the same port, causing `EADDRINUSE`. Setting `mode: "off"` tells the Gateway to skip the proxy and handle browser requests in-process where the relay already exists.
+
 ## Troubleshooting
 
 | Symptom                                 | Cause & Fix                                                                                      |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `EADDRINUSE 127.0.0.1:18792`           | Set `gateway.nodes.browser.mode: "off"` in `~/.openclaw/openclaw.json` — see [above](#required-browser-relay-configuration) |
 | `401 Unauthorized` on MCP connect       | API key not reaching server. Use `headers: {"x-api-key": "..."}`, NOT `?apiKey=` in URL         |
 | Bridge can't connect to Gateway         | Check Gateway is running: `openclaw config get gateway.port`                                     |
 | "device signature invalid"              | Verify `OPENCLAW_GATEWAY_TOKEN` in `.env` matches `openclaw config get gateway.auth.token`       |

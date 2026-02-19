@@ -173,10 +173,28 @@ bun run start --transport=stdio
 | `openclaw_system_run`       | Execute shell commands on the local machine                     |
 | `openclaw_gateway_call`     | Direct RPC access to OpenClaw Gateway (e.g. `node.list`)        |
 
+## Required: Browser Relay Configuration
+
+If you run both the Gateway and Node Host (needed for `openclaw_system_run`), you **must** add this to `~/.openclaw/openclaw.json` to prevent `EADDRINUSE` port conflicts on the browser relay:
+
+```json
+{
+  "gateway": {
+    "nodes": {
+      "browser": {
+        "mode": "off"
+      }
+    }
+  }
+}
+```
+
+This tells the Gateway to handle browser requests directly instead of proxying them to the Node Host (which would try to bind the same relay port). See **[SETUP.md](./SETUP.md#required-browser-relay-configuration)** for details.
+
 ## Documentation
 
+- **[SETUP.md](./SETUP.md)**: Detailed architecture, protocol details, browser relay config, and troubleshooting.
 - **[RECIPES.md](./RECIPES.md)**: Connectivity options (Tailscale, SSH Tunneling, Cloudflare Tunnel).
-- **[SETUP.md](./SETUP.md)**: Detailed architecture, protocol details, and troubleshooting.
 
 ## Development
 
